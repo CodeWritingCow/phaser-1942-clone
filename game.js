@@ -31,7 +31,26 @@ BasicGame.Game.prototype = {
     this.enemy.anchor.setTo(0.5, 0.5);
     this.physics.enable(this.enemy, Phaser.Physics.ARCADE);
 
-    this.bullets = [];
+    // Add empty sprite group into game
+    this.bulletPool = this.add.group();
+
+    // Enable physics to whole sprite group
+    this.bulletPool.enableBody = true;
+    this.bulletPool.physicsBodyType = Phaser.Physics.ARCADE;
+
+    // Add 100 bullet sprites into group
+    // This uses first frame in sprite sheet by default
+    // Sets inital state as non-existing (killed/dead)
+    this.bulletPool.createMultiple(100, 'bullet');
+
+    // Sets anchors of all sprites
+    this.bulletPool.setAll('anchor.x', 0.5);
+    this.bulletPool.setAll('anchor.y', 0.5);
+
+    // Automatically kill bullet sprites when they go out of bound
+    this.bulletPool.setAll('outOfBoundsKill', true);
+    this.bulletPool.setAll('checkWorldBounds', true);
+
     this.nextShotAt = 0;
     this.shotDelay = 100;
 
@@ -49,10 +68,8 @@ BasicGame.Game.prototype = {
   update: function () {
     this.sea.tilePosition.y += 0.2;
 
-    for (var i = 0; i < this.bullets.length; i++) {
-      this.physics.arcade.overlap(
-        this.bullets[i], this.enemy, this.enemyHit, null, this);
-    }
+    this.physics.arcade.overlap(
+      this.bulletPool, this.enemy, this.enemyHit, null, this);
 
     this.player.body.velocity.x = 0;
     this.player.body.velocity.y = 0;
@@ -89,13 +106,19 @@ BasicGame.Game.prototype = {
       return;
     }
 
+    if (this.bulletPool.countDead() === 0) {
+      return;
+    }
+
     this.nextShotAt = this.time.now + this.shotDelay;
 
-    var bullet = this.add.sprite(this.player.x, this.player.y -20, 'bullet');
-    bullet.anchor.setTo(0.5, 0.5);
-    this.physics.enable(bullet, Phaser.Physics.ARCADE);
+    // Find first dead bullet in the pool
+    var bullet = this.bulletPool.getFirstExists(false);
+
+    // Reset (revive) sprite and place it in new location
+    bullet.reset(this.player.x, this.player.y - 20);
+
     bullet.body.velocity.y = -500;
-    this.bullets.push(bullet);
   },
 
   render: function() {
