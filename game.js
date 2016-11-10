@@ -6,6 +6,7 @@ BasicGame.Game = function (game) {
 BasicGame.Game.prototype = {
 
   preload: function() {
+    // load image files
     this.load.image('sea', 'assets/sea.png');
     this.load.image('bullet', 'assets/bullet.png');
     this.load.spritesheet('greenEnemy', 'assets/enemy.png', 32, 32);
@@ -13,10 +14,13 @@ BasicGame.Game.prototype = {
     this.load.spritesheet('player', 'assets/player.png', 64, 64);
   },
 
+
   create: function () {
 
+    // Add sea background
     this.sea = this.add.tileSprite(0, 0, 800, 600, 'sea');
 
+    // Add player sprite
     this.player = this.add.sprite(400, 550, 'player');
     this.player.anchor.setTo(0.5, 0.5);
     this.player.animations.add('fly', [0, 1, 2], 20, true);
@@ -25,6 +29,7 @@ BasicGame.Game.prototype = {
     this.player.speed = 300;
     this.player.body.collideWorldBounds = true;
 
+    // Add enemy sprite group
     this.enemyPool = this.add.group();
     this.enemyPool.enableBody = true;
     this.enemyPool.physicsBodyType = Phaser.Physics.ARCADE;
@@ -39,6 +44,7 @@ BasicGame.Game.prototype = {
       enemy.animations.add('fly', [0, 1, 2], 20, true);
     });
 
+    // Set time value for when next enemy spawns
     this.nextEnemyAt = 0;
     this.enemyDelay = 1000;
 
@@ -63,11 +69,14 @@ BasicGame.Game.prototype = {
     this.bulletPool.setAll('outOfBoundsKill', true);
     this.bulletPool.setAll('checkWorldBounds', true);
 
+    // Set time value for when the next bullet can be fired
     this.nextShotAt = 0;
     this.shotDelay = 100;
 
+    // Allow keyboard control
     this.cursors = this.input.keyboard.createCursorKeys();
 
+    // Add game instruction on screen
     this.instructions = this.add.text(400, 500,
       'Use Arrow Keys to Move, Press Z to Fire\n' +
       'Tapping/clicking does both',
@@ -77,9 +86,13 @@ BasicGame.Game.prototype = {
     this.instExpire = this.time.now + 10000;
   },
 
+
   update: function () {
+
+    //
     this.sea.tilePosition.y += 0.2;
 
+    // Check for collision between player bullet and enemy
     this.physics.arcade.overlap(
       this.bulletPool, this.enemyPool, this.enemyHit, null, this);
 
@@ -97,6 +110,7 @@ BasicGame.Game.prototype = {
       enemy.play('fly');
     }
 
+    // Set player movement control via keyboard
     this.player.body.velocity.x = 0;
     this.player.body.velocity.y = 0;
 
@@ -112,21 +126,26 @@ BasicGame.Game.prototype = {
       this.player.body.velocity.y = this.player.speed;
     }
 
+    // Set player movement control via mouse/pointer
     if (this.input.activePointer.isDown &&
       this.physics.arcade.distanceToPointer(this.player) > 15) {
       this.physics.arcade.moveToPointer(this.player, this.player.speed);
     }
 
+    // Set player bullet-firing control
     if (this.input.keyboard.isDown(Phaser.Keyboard.Z) ||
       this.input.activePointer.isDown) {
       this.fire();
     }
 
+    // Set when on-screen instruction disappears
     if (this.instructions.exists && this.time.now > this.instExpire) {
       this.instructions.destroy();
     }
   },
 
+
+  // When player fires bullet
   fire: function() {
     if (this.nextShotAt > this.time.now) {
       return;
@@ -147,10 +166,13 @@ BasicGame.Game.prototype = {
     bullet.body.velocity.y = -500;
   },
 
+
   render: function() {
 
   },
 
+
+  // When bullet hits enemy
   enemyHit: function(bullet, enemy) {
     bullet.kill();
     enemy.kill();
@@ -159,6 +181,7 @@ BasicGame.Game.prototype = {
     explosion.animations.add('boom');
     explosion.play('boom', 15, false, true);
   },
+
 
   quitGame: function (pointer) {
 
