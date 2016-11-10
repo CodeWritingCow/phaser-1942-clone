@@ -29,6 +29,9 @@ BasicGame.Game.prototype = {
     this.player.speed = 300;
     this.player.body.collideWorldBounds = true;
 
+    // Reduce player hitbox to 20 x 20, centered a little higher than center
+    this.player.body.setSize(20, 20, 0, -5);
+
     // Add enemy sprite group
     this.enemyPool = this.add.group();
     this.enemyPool.enableBody = true;
@@ -92,9 +95,13 @@ BasicGame.Game.prototype = {
     //
     this.sea.tilePosition.y += 0.2;
 
-    // Check for collision between player bullet and enemy
+    // Detect collision between player bullet and enemy
     this.physics.arcade.overlap(
       this.bulletPool, this.enemyPool, this.enemyHit, null, this);
+
+    // Detect collision bewtween player and enemy
+    this.physics.arcade.overlap(
+      this.player, this.enemyPool, this.playerHit, null, this);
 
     if (this.nextEnemyAt < this.time.now && this.enemyPool.countDead() > 0) {
       this.nextEnemyAt = this.time.now + this.enemyDelay;
@@ -145,9 +152,10 @@ BasicGame.Game.prototype = {
   },
 
 
-  // When player fires bullet
+  // Callback when player fires bullet
   fire: function() {
-    if (this.nextShotAt > this.time.now) {
+    // If player dead or bullet just got fired, callback ends, i.e. bullet won't fire.
+    if (!this.player.alive || this.nextShotAt > this.time.now) {
       return;
     }
 
@@ -166,9 +174,20 @@ BasicGame.Game.prototype = {
     bullet.body.velocity.y = -500;
   },
 
+  // Callback when player and enemy collide
+  playerHit: function(player, enemy) {
+    enemy.kill();
+    var explosion = this.add.sprite(player.x, player.y, 'explosion');
+    explosion.anchor.setTo(0.5, 0.5);
+    explosion.animations.add('boom');
+    explosion.play('boom', 15, false, true);
+    player.kill();
+  },
+
 
   render: function() {
-
+    // Show player sprite hitbox size
+    // this.game.debug.body(this.player);
   },
 
 
