@@ -40,7 +40,9 @@ BasicGame.Game.prototype = {
       // Find first dead enemy in pool
       var enemy = this.enemyPool.getFirstExists(false);
       // spawn at random location top of screen
-      enemy.reset(this.rnd.integerInRange(20, this.game.width - 20), 0);
+      enemy.reset(
+        this.rnd.integerInRange(20, this.game.width - 20), 0,
+        BasicGame.ENEMY_HEALTH);
       // randomize speed
       enemy.body.velocity.y = this.rnd.integerInRange(BasicGame.ENEMY_MIN_Y_VELOCITY, BasicGame.ENEMY_MAX_Y_VELOCITY);
       enemy.play('fly');      
@@ -117,7 +119,8 @@ BasicGame.Game.prototype = {
 
   // Callback when player and enemy collide
   playerHit: function(player, enemy) {
-    enemy.kill();
+    // Crashing into enemy only deals 5 damages
+    this.damageEnemy(enemy, BasicGame.CRASH_DAMAGE);
     this.explode(player);
     player.kill();
   },
@@ -162,6 +165,10 @@ BasicGame.Game.prototype = {
     // Set animation for each sprite
     this.enemyPool.forEach(function(enemy) {
       enemy.animations.add('fly', [0, 1, 2], 20, true);
+      enemy.animations.add('hit', [ 3, 1, 3, 2], 20, false);
+      enemy.events.onAnimationComplete.add(function(e) {
+        e.play('fly');
+      }, this);
     });
 
     // Set time value for when next enemy spawns
@@ -223,8 +230,7 @@ BasicGame.Game.prototype = {
   // When bullet hits enemy
   enemyHit: function(bullet, enemy) {
     bullet.kill();
-    this.explode(enemy);
-    enemy.kill();
+    this.damageEnemy(enemy, BasicGame.BULLET_DAMAGE);
   },
 
   // Callback when something explodes
@@ -239,6 +245,16 @@ BasicGame.Game.prototype = {
     // Add original sprite's velocity to explosion
     explosion.body.velocity.x = sprite.body.velocity.x;
     explosion.body.velocity.y = sprite.body.velocity.y;
+  },
+
+  // Callback when enemy takes damage
+  damageEnemy: function(enemy, damage) {
+    enemy.damage(damage);
+    if (enemy.alive) {
+      enemy.play('hit');
+    } else {
+      this.explode(enemy);
+    }
   },
 
 
