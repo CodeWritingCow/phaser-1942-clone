@@ -20,6 +20,7 @@ BasicGame.Game.prototype = {
     this.setupEnemies();
     this.setupBullets();
     this.setupExplosions();
+    this.setupPlayerIcons();
     this.setupText();
 
     // Allow keyboard control
@@ -84,6 +85,11 @@ BasicGame.Game.prototype = {
     if (this.instructions.exists && this.time.now > this.instExpire) {
       this.instructions.destroy();
     }
+    // Set when player 'ghost mode' expires
+    if (this.ghostUntil && this.ghostUntil < this.time.now) {
+      this.ghostUntil = null;
+      this.player.play('fly');
+    }
   },
   
 
@@ -119,10 +125,22 @@ BasicGame.Game.prototype = {
 
   // Callback when player and enemy collide
   playerHit: function(player, enemy) {
+
+    // Check if this.ghostUntil is not not undefined or null
+    if (this.ghostUntil && this.ghostUntil > this.time.now) {
+      return;
+    }
     // Crashing into enemy only deals 5 damages
     this.damageEnemy(enemy, BasicGame.CRASH_DAMAGE);
+    var life = this.lives.getFirstAlive();
+    if (life !== null) {
+      life.kill();
+      this.ghostUntil = this.time.now + BasicGame.PLAYER_GHOST_TIME;
+      this.player.play('ghost');
+    } else {
     this.explode(player);
     player.kill();
+    }
   },
 
 
@@ -142,6 +160,7 @@ BasicGame.Game.prototype = {
     this.player = this.add.sprite(this.game.width / 2, this.game.height - 50, 'player');
     this.player.anchor.setTo(0.5, 0.5);
     this.player.animations.add('fly', [0, 1, 2], 20, true);
+    this.player.animations.add('ghost', [3, 0, 3, 1], 20, true);
     this.player.play('fly');
     this.physics.enable(this.player, Phaser.Physics.ARCADE);
     this.player.speed = BasicGame.PLAYER_SPEED;
@@ -216,6 +235,17 @@ BasicGame.Game.prototype = {
     });
   },
 
+  setupPlayerIcons: function() {
+    this.lives = this.add.group();
+    // calculate location of first life icon
+    var firstLifeIconX = this.game.width - 10 - (BasicGame.PLAYER_EXTRA_LIVES * 30);
+    for (var i = 0; i < BasicGame.PLAYER_EXTRA_LIVES; i++) {
+      var life = this.lives.create(firstLifeIconX + (30 * i), 30, 'player');
+      life.scale.setTo(0.5, 0.5);
+      life.anchor.setTo(0.5, 0.5);
+    }
+  },
+
   setupText: function() {
     // Add game instruction on screen
     this.instructions = this.add.text(this.game.width / 2, this.game.height - 100,
@@ -267,7 +297,7 @@ BasicGame.Game.prototype = {
     }
   },
 
-  // Callback when player increases score
+  // Callback when player score changes
   addToScore: function(score) {
     this.score += score;
     this.scoreText.text = this.score;
