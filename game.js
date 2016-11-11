@@ -16,118 +16,39 @@ BasicGame.Game.prototype = {
 
 
   create: function () {
-
-    // Add sea background
-    this.sea = this.add.tileSprite(0, 0, 800, 600, 'sea');
-
-    // Add player sprite
-    this.player = this.add.sprite(400, 550, 'player');
-    this.player.anchor.setTo(0.5, 0.5);
-    this.player.animations.add('fly', [0, 1, 2], 20, true);
-    this.player.play('fly');
-    this.physics.enable(this.player, Phaser.Physics.ARCADE);
-    this.player.speed = 300;
-    this.player.body.collideWorldBounds = true;
-
-    // Reduce player hitbox to 20 x 20, centered a little higher than center
-    this.player.body.setSize(20, 20, 0, -5);
-
-    // Add enemy sprite group
-    this.enemyPool = this.add.group();
-    this.enemyPool.enableBody = true;
-    this.enemyPool.physicsBodyType = Phaser.Physics.ARCADE;
-    this.enemyPool.createMultiple(50, 'greenEnemy');
-    this.enemyPool.setAll('anchor.x', 0.5);
-    this.enemyPool.setAll('anchor.y', 0.5);
-    this.enemyPool.setAll('outOfBoundsKill', true);
-    this.enemyPool.setAll('checkWorldBounds', true);
-
-    // Set animation for each sprite
-    this.enemyPool.forEach(function(enemy) {
-      enemy.animations.add('fly', [0, 1, 2], 20, true);
-    });
-
-    // Set time value for when next enemy spawns
-    this.nextEnemyAt = 0;
-    this.enemyDelay = 1000;
-
-
-    // Add empty sprite group into game
-    this.bulletPool = this.add.group();
-
-    // Enable physics to whole sprite group
-    this.bulletPool.enableBody = true;
-    this.bulletPool.physicsBodyType = Phaser.Physics.ARCADE;
-
-    // Add 100 bullet sprites into group
-    // This uses first frame in sprite sheet by default
-    // Sets inital state as non-existing (killed/dead)
-    this.bulletPool.createMultiple(100, 'bullet');
-
-    // Sets anchors of all sprites
-    this.bulletPool.setAll('anchor.x', 0.5);
-    this.bulletPool.setAll('anchor.y', 0.5);
-
-    // Automatically kill bullet sprites when they go out of bound
-    this.bulletPool.setAll('outOfBoundsKill', true);
-    this.bulletPool.setAll('checkWorldBounds', true);
-
-    // Set time value for when the next bullet can be fired
-    this.nextShotAt = 0;
-    this.shotDelay = 100;
-
-    // Add empty explosion sprite group
-    this.explosionPool = this.add.group();    
-    this.explosionPool.enableBody = true;
-    this.explosionPool.physicsBodyType = Phaser.Physics.ARCADE;
-    this.explosionPool.createMultiple(100, 'explosion');
-    this.explosionPool.setAll('anchor.x', 0.5);
-    this.explosionPool.setAll('anchor.y', 0.5);
-    this.explosionPool.forEach(function(explosion) {
-      explosion.animations.add('boom');
-    });
+    this.setupBackground();
+    this.setupPlayer();
+    this.setupEnemies();
+    this.setupBullets();
+    this.setupExplosions();
+    this.setupText();
 
     // Allow keyboard control
     this.cursors = this.input.keyboard.createCursorKeys();
-
-    // Add game instruction on screen
-    this.instructions = this.add.text(400, 500,
-      'Use Arrow Keys to Move, Press Z to Fire\n' +
-      'Tapping/clicking does both',
-      { font: '20px monospace', fill: '#fff', align: 'center' }
-      );
-    this.instructions.anchor.setTo(0.5, 0.5);
-    this.instExpire = this.time.now + 10000;
   },
 
-
-  update: function () {
-
-    //
-    this.sea.tilePosition.y += 0.2;
-
-    // Detect collision between player bullet and enemy
+  checkCollisions: function() {
     this.physics.arcade.overlap(
       this.bulletPool, this.enemyPool, this.enemyHit, null, this);
-
-    // Detect collision bewtween player and enemy
     this.physics.arcade.overlap(
-      this.player, this.enemyPool, this.playerHit, null, this);
+      this.player, this.enemyPool, this.playerHit, null, this
+      );
+  },
 
+  spawnEnemies: function() {
     if (this.nextEnemyAt < this.time.now && this.enemyPool.countDead() > 0) {
       this.nextEnemyAt = this.time.now + this.enemyDelay;
-
       // Find first dead enemy in pool
       var enemy = this.enemyPool.getFirstExists(false);
-      
       // spawn at random location top of screen
       enemy.reset(this.rnd.integerInRange(20, 780), 0);
-      
       // randomize speed
       enemy.body.velocity.y = this.rnd.integerInRange(30, 60);
-      enemy.play('fly');
+      enemy.play('fly');      
     }
+  },
 
+  processPlayerInput: function() {
     // Set player movement control via keyboard
     this.player.body.velocity.x = 0;
     this.player.body.velocity.y = 0;
@@ -155,11 +76,21 @@ BasicGame.Game.prototype = {
       this.input.activePointer.isDown) {
       this.fire();
     }
+  },
 
+  processDelayedEffects: function() {
     // Set when on-screen instruction disappears
     if (this.instructions.exists && this.time.now > this.instExpire) {
       this.instructions.destroy();
     }
+  },
+  
+
+  update: function () {
+    this.checkCollisions();
+    this.spawnEnemies();
+    this.processPlayerInput();
+    this.processDelayedEffects();
   },
 
 
@@ -196,6 +127,97 @@ BasicGame.Game.prototype = {
   render: function() {
     // Show player sprite hitbox size
     // this.game.debug.body(this.player);
+  },
+
+  setupBackground: function() {
+    // Add sea background
+    this.sea = this.add.tileSprite(0, 0, 800, 600, 'sea');
+    this.sea.autoScroll(0, 12);  
+  },
+
+  setupPlayer: function() {
+    // Add player sprite
+    this.player = this.add.sprite(400, 550, 'player');
+    this.player.anchor.setTo(0.5, 0.5);
+    this.player.animations.add('fly', [0, 1, 2], 20, true);
+    this.player.play('fly');
+    this.physics.enable(this.player, Phaser.Physics.ARCADE);
+    this.player.speed = 300;
+    this.player.body.collideWorldBounds = true;
+
+    // Reduce player hitbox to 20 x 20, centered a little higher than center
+    this.player.body.setSize(20, 20, 0, -5);
+  },
+
+  setupEnemies: function() {
+    // Add enemy sprite group
+    this.enemyPool = this.add.group();
+    this.enemyPool.enableBody = true;
+    this.enemyPool.physicsBodyType = Phaser.Physics.ARCADE;
+    this.enemyPool.createMultiple(50, 'greenEnemy');
+    this.enemyPool.setAll('anchor.x', 0.5);
+    this.enemyPool.setAll('anchor.y', 0.5);
+    this.enemyPool.setAll('outOfBoundsKill', true);
+    this.enemyPool.setAll('checkWorldBounds', true);
+
+    // Set animation for each sprite
+    this.enemyPool.forEach(function(enemy) {
+      enemy.animations.add('fly', [0, 1, 2], 20, true);
+    });
+
+    // Set time value for when next enemy spawns
+    this.nextEnemyAt = 0;
+    this.enemyDelay = 1000;
+  },
+
+  setupBullets: function() {
+    // Add empty sprite group into game
+    this.bulletPool = this.add.group();
+
+    // Enable physics to whole sprite group
+    this.bulletPool.enableBody = true;
+    this.bulletPool.physicsBodyType = Phaser.Physics.ARCADE;
+
+    // Add 100 bullet sprites into group
+    // This uses first frame in sprite sheet by default
+    // Sets inital state as non-existing (killed/dead)
+    this.bulletPool.createMultiple(100, 'bullet');
+
+    // Sets anchors of all sprites
+    this.bulletPool.setAll('anchor.x', 0.5);
+    this.bulletPool.setAll('anchor.y', 0.5);
+
+    // Automatically kill bullet sprites when they go out of bound
+    this.bulletPool.setAll('outOfBoundsKill', true);
+    this.bulletPool.setAll('checkWorldBounds', true);
+
+    // Set time value for when the next bullet can be fired
+    this.nextShotAt = 0;
+    this.shotDelay = 100;
+  },
+
+  setupExplosions: function() {
+    // Add empty explosion sprite group
+    this.explosionPool = this.add.group();    
+    this.explosionPool.enableBody = true;
+    this.explosionPool.physicsBodyType = Phaser.Physics.ARCADE;
+    this.explosionPool.createMultiple(100, 'explosion');
+    this.explosionPool.setAll('anchor.x', 0.5);
+    this.explosionPool.setAll('anchor.y', 0.5);
+    this.explosionPool.forEach(function(explosion) {
+      explosion.animations.add('boom');
+    });
+  },
+
+  setupText: function() {
+    // Add game instruction on screen
+    this.instructions = this.add.text(400, 500,
+      'Use Arrow Keys to Move, Press Z to Fire\n' +
+      'Tapping/clicking does both',
+      { font: '20px monospace', fill: '#fff', align: 'center' }
+      );
+    this.instructions.anchor.setTo(0.5, 0.5);
+    this.instExpire = this.time.now + 10000;
   },
 
 
