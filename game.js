@@ -1,4 +1,3 @@
-
 BasicGame.Game = function (game) {
 
 };
@@ -41,9 +40,9 @@ BasicGame.Game.prototype = {
       // Find first dead enemy in pool
       var enemy = this.enemyPool.getFirstExists(false);
       // spawn at random location top of screen
-      enemy.reset(this.rnd.integerInRange(20, 780), 0);
+      enemy.reset(this.rnd.integerInRange(20, this.game.width - 20), 0);
       // randomize speed
-      enemy.body.velocity.y = this.rnd.integerInRange(30, 60);
+      enemy.body.velocity.y = this.rnd.integerInRange(BasicGame.ENEMY_MIN_Y_VELOCITY, BasicGame.ENEMY_MAX_Y_VELOCITY);
       enemy.play('fly');      
     }
   },
@@ -113,7 +112,7 @@ BasicGame.Game.prototype = {
     // Reset (revive) sprite and place it in new location
     bullet.reset(this.player.x, this.player.y - 20);
 
-    bullet.body.velocity.y = -500;
+    bullet.body.velocity.y = -BasicGame.BULLET_VELOCITY;
   },
 
   // Callback when player and enemy collide
@@ -131,18 +130,18 @@ BasicGame.Game.prototype = {
 
   setupBackground: function() {
     // Add sea background
-    this.sea = this.add.tileSprite(0, 0, 800, 600, 'sea');
-    this.sea.autoScroll(0, 12);  
+    this.sea = this.add.tileSprite(0, 0, this.game.width, this.game.height, 'sea');
+    this.sea.autoScroll(0, BasicGame.SEA_SCROLL_SPEED);  
   },
 
   setupPlayer: function() {
     // Add player sprite
-    this.player = this.add.sprite(400, 550, 'player');
+    this.player = this.add.sprite(this.game.width / 2, this.game.height - 50, 'player');
     this.player.anchor.setTo(0.5, 0.5);
     this.player.animations.add('fly', [0, 1, 2], 20, true);
     this.player.play('fly');
     this.physics.enable(this.player, Phaser.Physics.ARCADE);
-    this.player.speed = 300;
+    this.player.speed = BasicGame.PLAYER_SPEED;
     this.player.body.collideWorldBounds = true;
 
     // Reduce player hitbox to 20 x 20, centered a little higher than center
@@ -167,7 +166,7 @@ BasicGame.Game.prototype = {
 
     // Set time value for when next enemy spawns
     this.nextEnemyAt = 0;
-    this.enemyDelay = 1000;
+    this.enemyDelay = BasicGame.SPAWN_ENEMY_DELAY;
   },
 
   setupBullets: function() {
@@ -193,7 +192,7 @@ BasicGame.Game.prototype = {
 
     // Set time value for when the next bullet can be fired
     this.nextShotAt = 0;
-    this.shotDelay = 100;
+    this.shotDelay = BasicGame.SHOT_DELAY;
   },
 
   setupExplosions: function() {
@@ -211,13 +210,13 @@ BasicGame.Game.prototype = {
 
   setupText: function() {
     // Add game instruction on screen
-    this.instructions = this.add.text(400, 500,
+    this.instructions = this.add.text(this.game.width / 2, this.game.height - 100,
       'Use Arrow Keys to Move, Press Z to Fire\n' +
       'Tapping/clicking does both',
       { font: '20px monospace', fill: '#fff', align: 'center' }
       );
     this.instructions.anchor.setTo(0.5, 0.5);
-    this.instExpire = this.time.now + 10000;
+    this.instExpire = this.time.now + BasicGame.INSTRUCTION_EXPIRE;
   },
 
 
@@ -250,7 +249,5 @@ BasicGame.Game.prototype = {
 
     //  Then let's go back to the main menu.
     this.state.start('MainMenu');
-
   }
-
 };
